@@ -70,7 +70,6 @@ impl Config {
 
     /// Adds or replaces a context, and makes it the current one when there is
     /// no current one yet.
-    #[allow(dead_code, reason = "login uses it")]
     pub fn upsert(&mut self, name: &str, ctx: Context) {
         self.contexts.insert(name.to_string(), ctx);
         if self.current.is_none() {
@@ -101,7 +100,6 @@ impl Config {
 
     /// The context a command runs against: the one named, or else the
     /// current one.
-    #[allow(dead_code, reason = "commands that reach a server use it")]
     pub fn resolve(&self, name: Option<&str>) -> Result<(&str, &Context)> {
         let name = match name.or(self.current.as_deref()) {
             Some(n) => n,
