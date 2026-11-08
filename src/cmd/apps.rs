@@ -64,13 +64,25 @@ pub fn run(cmd: Option<AppsCommand>, context: Option<&str>, json: bool) -> Resul
                 format!("{} ({source})", a.deploy_type)
             };
             println!("{}", output::bold(&a.name));
-            output::fields(&[
+            let mut fields = vec![
                 ("id", a.id.clone()),
                 ("address", format!("https://{}", a.host)),
                 ("type", kind),
                 ("port", a.port.to_string()),
                 ("state", state),
-            ])
+            ];
+            // Only once there is something to say: a deploy under way, or the
+            // reason the latest one failed.
+            match &a.deploy {
+                Some(d) if d.running => fields.push(("deploy", output::state("deploying"))),
+                Some(d) => {
+                    if let Some(err) = &d.error {
+                        fields.push(("deploy", format!("{} {err}", output::state("error"))));
+                    }
+                }
+                None => {}
+            }
+            output::fields(&fields)
         }
     }
 }

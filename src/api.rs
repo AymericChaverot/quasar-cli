@@ -123,6 +123,12 @@ impl Client {
             .with_context(|| format!("unexpected answer from {}", self.base))
     }
 
+    pub fn post<T: DeserializeOwned>(&self, path: &str) -> Result<T> {
+        let resp = self.send(self.request(reqwest::Method::POST, path))?;
+        resp.json()
+            .with_context(|| format!("unexpected answer from {}", self.base))
+    }
+
     pub fn me(&self) -> Result<Me> {
         self.get("/me")
     }

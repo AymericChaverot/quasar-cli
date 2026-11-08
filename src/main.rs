@@ -58,6 +58,29 @@ enum Command {
         #[command(subcommand)]
         command: Option<cmd::apps::AppsCommand>,
     },
+    /// Fetch an application's latest version and deploy it, then wait for the outcome
+    Deploy {
+        /// Its name, subdomain or id
+        app: String,
+        /// Return once the deploy has started, without waiting for it
+        #[arg(long, short)]
+        detach: bool,
+    },
+    /// Restart an application's containers
+    Restart {
+        /// Its name, subdomain or id
+        app: String,
+    },
+    /// Start an application's containers
+    Start {
+        /// Its name, subdomain or id
+        app: String,
+    },
+    /// Stop an application's containers
+    Stop {
+        /// Its name, subdomain or id
+        app: String,
+    },
     /// Manage the servers qsr knows
     #[command(subcommand)]
     Context(cmd::context::ContextCommand),
@@ -76,6 +99,10 @@ fn main() -> ExitCode {
         Command::Logout { name } => cmd::auth::logout(name.as_deref(), ctx),
         Command::Whoami => cmd::auth::whoami(ctx, cli.json),
         Command::Apps { command } => cmd::apps::run(command, ctx, cli.json),
+        Command::Deploy { app, detach } => cmd::lifecycle::deploy(&app, detach, ctx, cli.json),
+        Command::Restart { app } => cmd::lifecycle::lifecycle("restart", &app, ctx, cli.json),
+        Command::Start { app } => cmd::lifecycle::lifecycle("start", &app, ctx, cli.json),
+        Command::Stop { app } => cmd::lifecycle::lifecycle("stop", &app, ctx, cli.json),
         Command::Context(c) => cmd::context::run(c, cli.json),
     };
     match result {

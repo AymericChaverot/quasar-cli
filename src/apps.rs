@@ -24,6 +24,16 @@ pub struct App {
     pub state: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub uptime: Option<String>,
+    /// The latest deploy since the dashboard started. Absent from servers
+    /// older than the field.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub deploy: Option<DeployState>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DeployState {
+    pub running: bool,
+    pub error: Option<String>,
 }
 
 impl App {
@@ -106,6 +116,7 @@ mod tests {
             port: 80,
             state: "running".into(),
             uptime: None,
+            deploy: None,
         }
     }
 
