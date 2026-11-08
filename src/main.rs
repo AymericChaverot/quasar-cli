@@ -1,6 +1,7 @@
 //! `qsr`, the command-line client for Quasar.
 
 mod api;
+mod apps;
 mod cmd;
 mod config;
 mod output;
@@ -52,6 +53,11 @@ enum Command {
     },
     /// Show who you are signed in as, and where
     Whoami,
+    /// List applications, or show one
+    Apps {
+        #[command(subcommand)]
+        command: Option<cmd::apps::AppsCommand>,
+    },
     /// Manage the servers qsr knows
     #[command(subcommand)]
     Context(cmd::context::ContextCommand),
@@ -69,6 +75,7 @@ fn main() -> ExitCode {
         } => cmd::auth::login(&name, &url, token_stdin),
         Command::Logout { name } => cmd::auth::logout(name.as_deref(), ctx),
         Command::Whoami => cmd::auth::whoami(ctx, cli.json),
+        Command::Apps { command } => cmd::apps::run(command, ctx, cli.json),
         Command::Context(c) => cmd::context::run(c, cli.json),
     };
     match result {
