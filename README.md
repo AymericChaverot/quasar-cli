@@ -65,17 +65,21 @@ see it.
 
 ## Signing in
 
-`qsr` authenticates with a **personal token**, created on the dashboard under
-**Settings > Tokens**. A personal token belongs to your account: it acts with
-your current role (admin or viewer), stops working when the account is
-deleted, and expires when you chose it would. Everything it does shows up in
-the audit log under your name.
+`qsr` needs Quasar v0.5.2 or later.
+
+It authenticates with a **personal token**, created on the dashboard under
+**Settings > Personal tokens**. A personal token belongs to your account: it
+acts with your current role (admin or viewer), stops working when the account
+is deleted, and expires when you chose it would. Everything it does shows up
+in the audit log under your name, as `alice via laptop`.
 
 ```sh
 qsr login prod https://admin.example.com   # prompts for the token
 qsr whoami                                 # who and where you are signed in
-qsr logout prod
+qsr logout prod                            # forgets it here; revoke it on the dashboard
 ```
+
+`--token-stdin` reads the token from stdin instead of prompting, for scripts.
 
 Service tokens (the ones made for CI, without an account) are accepted too,
 with one limit: they never read an application's environment.
@@ -115,15 +119,16 @@ The file is written readable by its owner only. Treat it like an SSH key.
 | `qsr apps show <app>` | Details of one application |
 | `qsr deploy <app>` | Redeploy and wait for the outcome (`--detach` to return at once) |
 | `qsr restart <app>`, `start`, `stop` | Lifecycle |
-| `qsr logs <app>` | Recent logs (`-f` to follow, `-n` for the line count) |
+| `qsr logs <app>` | Recent logs (`-n` for the line count, `-f` to follow, `-t` for timestamps) |
 | `qsr env <app>` | Show the environment (admin personal token) |
-| `qsr env set <app> KEY=value ...` | Set variables |
-| `qsr env unset <app> KEY ...` | Remove variables |
+| `qsr env set <app> KEY=value ...` | Set variables (`--deploy` to apply them at once) |
+| `qsr env unset <app> KEY ...` | Remove variables (`--deploy` likewise) |
 | `qsr whoami` | Current user, role and server |
 | `qsr context list`, `use`, `remove` | Manage contexts |
-| `qsr update` | Update `qsr` itself |
+| `qsr update` | Update `qsr` itself (`--check` to only look) |
 
-An application is named by its name, its subdomain or its id.
+An application is named by its id, its subdomain or its name; a name two
+applications share is refused, with both listed.
 
 Every command accepts `--json` for scripts. Colours are dropped when the
 output is not a terminal, and when `NO_COLOR` is set.

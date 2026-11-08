@@ -143,7 +143,8 @@ a viewer. Every read and every write is audited, without the values.
 
 ### Naming an application
 
-The CLI accepts a name, a subdomain or an id. It resolves it from `GET /apps`
+The CLI accepts an id, a subdomain or a name, tried in that order. It
+resolves it from `GET /apps`
 and refuses an ambiguous name, listing the candidates.
 
 ## Self-update
@@ -181,3 +182,7 @@ with tests. CLI changes go here.
 11. Server: environment routes. CLI: `env`.
 12. CLI: `update` and the daily check.
 13. Release v0.1.0, when the maintainer decides.
+
+Steps 1 to 12 were done on 2026-11-09; the server side shipped in Quasar
+v0.5.2. The archives, the install scripts and `qsr update` download from this
+repository's GitHub releases, so they need the repository to be public.
