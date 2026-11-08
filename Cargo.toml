@@ -1,0 +1,23 @@
+[package]
+name = "quasar-cli"
+version = "0.0.0"
+edition = "2024"
+rust-version = "1.85"
+description = "Command-line client for the Quasar self-hosted platform"
+license = "MIT"
+repository = "https://github.com/AymericChaverot/quasar-cli"
+readme = "README.md"
+publish = false
+
+[[bin]]
+name = "qsr"
+path = "src/main.rs"
+
+[dependencies]
+anyhow = "1.0.104"
+clap = { version = "4.6.7", features = ["derive", "env", "wrap_help"] }
+
+[profile.release]
+codegen-units = 1
+lto = true
+strip = true
