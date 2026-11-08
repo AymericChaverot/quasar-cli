@@ -66,6 +66,20 @@ enum Command {
         #[arg(long, short)]
         detach: bool,
     },
+    /// Print an application's recent logs, or follow them
+    Logs {
+        /// Its name, subdomain or id
+        app: String,
+        /// How many recent lines to start with (at most 5000)
+        #[arg(long, short = 'n', default_value_t = 200, value_parser = clap::value_parser!(u32).range(1..=5000))]
+        lines: u32,
+        /// Keep printing new lines as they are written
+        #[arg(long, short)]
+        follow: bool,
+        /// Prefix each line with the time Docker received it
+        #[arg(long, short)]
+        timestamps: bool,
+    },
     /// Restart an application's containers
     Restart {
         /// Its name, subdomain or id
@@ -100,6 +114,21 @@ fn main() -> ExitCode {
         Command::Whoami => cmd::auth::whoami(ctx, cli.json),
         Command::Apps { command } => cmd::apps::run(command, ctx, cli.json),
         Command::Deploy { app, detach } => cmd::lifecycle::deploy(&app, detach, ctx, cli.json),
+        Command::Logs {
+            app,
+            lines,
+            follow,
+            timestamps,
+        } => cmd::logs::run(
+            &app,
+            cmd::logs::Options {
+                lines,
+                follow,
+                timestamps,
+            },
+            ctx,
+            cli.json,
+        ),
         Command::Restart { app } => cmd::lifecycle::lifecycle("restart", &app, ctx, cli.json),
         Command::Start { app } => cmd::lifecycle::lifecycle("start", &app, ctx, cli.json),
         Command::Stop { app } => cmd::lifecycle::lifecycle("stop", &app, ctx, cli.json),

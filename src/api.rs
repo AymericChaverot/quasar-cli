@@ -129,6 +129,16 @@ impl Client {
             .with_context(|| format!("unexpected answer from {}", self.base))
     }
 
+    /// Opens a response to read as it arrives, with no overall time limit:
+    /// a followed log stays open until the user stops it.
+    pub fn stream(&self, path: &str, query: &[(&str, String)]) -> Result<Response> {
+        let req = self
+            .request(reqwest::Method::GET, path)
+            .query(query)
+            .timeout(Duration::from_secs(60 * 60 * 24 * 365));
+        self.send(req)
+    }
+
     pub fn me(&self) -> Result<Me> {
         self.get("/me")
     }
