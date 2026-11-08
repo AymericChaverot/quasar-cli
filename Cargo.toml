@@ -1,5 +1,6 @@
 [package]
 name = "quasar-cli"
+# Releases take their version from the git tag (QSR_VERSION, see release.yml).
 version = "0.0.0"
 edition = "2024"
 rust-version = "1.85"
