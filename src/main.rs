@@ -7,6 +7,7 @@ mod config;
 mod dotenv;
 mod output;
 mod session;
+mod update;
 
 use std::process::ExitCode;
 
@@ -101,12 +102,20 @@ enum Command {
     /// Manage the servers qsr knows
     #[command(subcommand)]
     Context(cmd::context::ContextCommand),
+    /// Install the latest release of qsr over this one
+    Update {
+        /// Only say whether there is a newer release
+        #[arg(long)]
+        check: bool,
+    },
 }
 
 fn main() -> ExitCode {
     let cli = Cli::parse();
     let ctx = cli.context.as_deref();
     let signing_in = matches!(cli.command, Command::Login { .. });
+    // `update` says it all itself, and --json output is for a program.
+    let check_for_update = !matches!(cli.command, Command::Update { .. }) && !cli.json;
     let result = match cli.command {
         Command::Login {
             name,
@@ -137,7 +146,11 @@ fn main() -> ExitCode {
         Command::Start { app } => cmd::lifecycle::lifecycle("start", &app, ctx, cli.json),
         Command::Stop { app } => cmd::lifecycle::lifecycle("stop", &app, ctx, cli.json),
         Command::Context(c) => cmd::context::run(c, cli.json),
+        Command::Update { check } => update::run(check),
     };
+    if check_for_update {
+        update::notify_if_newer();
+    }
     match result {
         Ok(()) => ExitCode::SUCCESS,
         Err(e) => {

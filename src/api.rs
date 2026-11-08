@@ -152,7 +152,7 @@ impl Client {
 
 /// Picks the TLS provider once per process. reqwest is built without one, so
 /// that the release builds need nothing but a C compiler for `ring`.
-fn install_crypto() {
+pub fn install_crypto() {
     // Fails only when a provider is already installed, which is the goal.
     let _ = rustls::crypto::ring::default_provider().install_default();
 }
