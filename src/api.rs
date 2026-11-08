@@ -129,6 +129,12 @@ impl Client {
             .with_context(|| format!("unexpected answer from {}", self.base))
     }
 
+    pub fn put<B: Serialize, T: DeserializeOwned>(&self, path: &str, body: &B) -> Result<T> {
+        let resp = self.send(self.request(reqwest::Method::PUT, path).json(body))?;
+        resp.json()
+            .with_context(|| format!("unexpected answer from {}", self.base))
+    }
+
     /// Opens a response to read as it arrives, with no overall time limit:
     /// a followed log stays open until the user stops it.
     pub fn stream(&self, path: &str, query: &[(&str, String)]) -> Result<Response> {

@@ -4,6 +4,7 @@ mod api;
 mod apps;
 mod cmd;
 mod config;
+mod dotenv;
 mod output;
 mod session;
 
@@ -80,6 +81,8 @@ enum Command {
         #[arg(long, short)]
         timestamps: bool,
     },
+    /// Show an application's environment, or change it
+    Env(cmd::env::EnvArgs),
     /// Restart an application's containers
     Restart {
         /// Its name, subdomain or id
@@ -129,6 +132,7 @@ fn main() -> ExitCode {
             ctx,
             cli.json,
         ),
+        Command::Env(args) => cmd::env::run(args, ctx, cli.json),
         Command::Restart { app } => cmd::lifecycle::lifecycle("restart", &app, ctx, cli.json),
         Command::Start { app } => cmd::lifecycle::lifecycle("start", &app, ctx, cli.json),
         Command::Stop { app } => cmd::lifecycle::lifecycle("stop", &app, ctx, cli.json),
