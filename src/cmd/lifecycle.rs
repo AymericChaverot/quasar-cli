@@ -1,6 +1,7 @@
 //! `qsr deploy`, `restart`, `start` and `stop`.
 
 use std::io::{self, IsTerminal, Write};
+use std::path::Path;
 use std::thread;
 use std::time::{Duration, Instant};
 
@@ -9,7 +10,7 @@ use serde::Deserialize;
 
 use crate::api::Client;
 use crate::apps::{self, App};
-use crate::{output, session};
+use crate::{output, pack, session};
 
 /// How often a running deploy is asked about.
 const POLL: Duration = Duration::from_secs(2);
@@ -19,10 +20,35 @@ struct Accepted {}
 
 /// Starts a deploy and, unless detached, waits for it to finish and reports
 /// how it went, failing when it failed.
-pub fn deploy(app: &str, detach: bool, context: Option<&str>, json: bool) -> Result<()> {
+///
+/// An application deployed from a local folder is sent the folder first —
+/// the one given, or the current one.
+pub fn deploy(
+    app: &str,
+    folder: Option<&Path>,
+    detach: bool,
+    context: Option<&str>,
+    json: bool,
+) -> Result<()> {
     let s = session::open(context)?;
     let a = apps::find(&s.client, app)?;
-    let _: Accepted = s.client.post(&format!("/apps/{}/deploy", a.id))?;
+    if a.deploy_type == "local" {
+        upload(&s.client, &a, folder.unwrap_or(Path::new(".")), json)?;
+    } else if let Some(folder) = folder {
+        bail!(
+            "{} is deployed from {}, not from a folder; only an application created with \
+             `qsr apps create --local` takes one, so {} was not sent",
+            a.name,
+            match a.deploy_type.as_str() {
+                "git" => "its repository",
+                "compose" => "its compose file",
+                _ => "its image",
+            },
+            folder.display()
+        );
+    } else {
+        let _: Accepted = s.client.post(&format!("/apps/{}/deploy", a.id))?;
+    }
     if detach {
         if json {
             return output::json(&a);
@@ -35,6 +61,45 @@ pub fn deploy(app: &str, detach: bool, context: Option<&str>, json: bool) -> Res
     }
 
     wait(&s.client, &a, "Deploying", "Deployed", json)
+}
+
+/// Redeploys an application from what the server already has — for one
+/// deployed from a folder, the folder uploaded last — and waits for the
+/// outcome. It is what applies a changed environment.
+pub fn redeploy(client: &Client, a: &App, json: bool) -> Result<()> {
+    let _: Accepted = client.post(&format!("/apps/{}/deploy", a.id))?;
+    wait(client, a, "Deploying", "Deployed", json)
+}
+
+/// Packs a folder and sends it to an application deployed from one, which
+/// starts its deploy. Refuses early what the server would refuse: a folder
+/// with nothing to build, or one larger than the server accepts.
+fn upload(client: &Client, a: &App, folder: &Path, json: bool) -> Result<()> {
+    pack::check_buildable(folder)?;
+    let limit = client.me()?.upload_max_bytes;
+    let packed = pack::pack(folder)?;
+    let size = packed.archive.len() as u64;
+    if let Some(limit) = limit.filter(|&l| size > l) {
+        bail!(
+            "{} is {} once compressed, and the server accepts at most {}; \
+             leave more out with .dockerignore, or ask an admin to raise the limit in Settings",
+            folder.display(),
+            pack::human_size(size),
+            pack::human_size(limit)
+        );
+    }
+    if !json {
+        eprintln!(
+            "Uploading {} ({} {}, {}, {} compressed)...",
+            folder.display(),
+            packed.files,
+            if packed.files == 1 { "file" } else { "files" },
+            pack::human_size(packed.bytes),
+            pack::human_size(size)
+        );
+    }
+    let _: Accepted = client.put_archive(&format!("/apps/{}/source", a.id), packed.archive)?;
+    Ok(())
 }
 
 /// Waits for the deploy just started on an application to end, reporting it

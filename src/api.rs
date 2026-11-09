@@ -51,6 +51,10 @@ pub struct Me {
     pub role: String,
     pub expires_at: Option<String>,
     pub server_version: String,
+    /// The largest folder upload the server accepts, compressed. Absent from
+    /// servers older than folder uploads.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub upload_max_bytes: Option<u64>,
 }
 
 impl Me {
@@ -137,6 +141,19 @@ impl Client {
 
     pub fn delete<T: DeserializeOwned>(&self, path: &str) -> Result<T> {
         let resp = self.send(self.request(reqwest::Method::DELETE, path))?;
+        resp.json()
+            .with_context(|| format!("unexpected answer from {}", self.base))
+    }
+
+    /// Sends a gzipped archive, with its length, under a generous time limit
+    /// of its own: a large folder on a slow uplink takes a while.
+    pub fn put_archive<T: DeserializeOwned>(&self, path: &str, archive: Vec<u8>) -> Result<T> {
+        let req = self
+            .request(reqwest::Method::PUT, path)
+            .header(reqwest::header::CONTENT_TYPE, "application/gzip")
+            .timeout(Duration::from_secs(60 * 60))
+            .body(archive);
+        let resp = self.send(req)?;
         resp.json()
             .with_context(|| format!("unexpected answer from {}", self.base))
     }
@@ -235,6 +252,7 @@ mod tests {
             role: "admin".into(),
             expires_at: None,
             server_version: "v0.5.2".into(),
+            upload_max_bytes: None,
         };
         assert_eq!(me.describe(), "alice (admin)");
         me.user = None;

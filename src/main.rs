@@ -6,6 +6,7 @@ mod cmd;
 mod config;
 mod dotenv;
 mod output;
+mod pack;
 mod session;
 mod update;
 
@@ -60,10 +61,13 @@ enum Command {
         #[command(subcommand)]
         command: Option<cmd::apps::AppsCommand>,
     },
-    /// Fetch an application's latest version and deploy it, then wait for the outcome
+    /// Deploy an application's latest version, or a folder, then wait for the outcome
     Deploy {
         /// Its name, subdomain or id
         app: String,
+        /// For an application created with --local, the folder to send (the
+        /// current one by default)
+        folder: Option<std::path::PathBuf>,
         /// Return once the deploy has started, without waiting for it
         #[arg(long, short)]
         detach: bool,
@@ -125,7 +129,11 @@ fn main() -> ExitCode {
         Command::Logout { name } => cmd::auth::logout(name.as_deref(), ctx),
         Command::Whoami => cmd::auth::whoami(ctx, cli.json),
         Command::Apps { command } => cmd::apps::run(command, ctx, cli.json),
-        Command::Deploy { app, detach } => cmd::lifecycle::deploy(&app, detach, ctx, cli.json),
+        Command::Deploy {
+            app,
+            folder,
+            detach,
+        } => cmd::lifecycle::deploy(&app, folder.as_deref(), detach, ctx, cli.json),
         Command::Logs {
             app,
             lines,

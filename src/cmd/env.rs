@@ -167,7 +167,7 @@ fn edit(
         println!("{what} on {}.", a.name);
     }
     if deploy {
-        return crate::cmd::lifecycle::deploy(&a.id, false, context, json);
+        return crate::cmd::lifecycle::redeploy(&s.client, &a, json);
     }
     if json {
         return output::json(&Shown {
