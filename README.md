@@ -117,7 +117,9 @@ The file is written readable by its owner only. Treat it like an SSH key.
 |---|---|
 | `qsr apps` | List applications and their state |
 | `qsr apps show <app>` | Details of one application |
-| `qsr deploy <app>` | Redeploy and wait for the outcome (`--detach` to return at once) |
+| `qsr apps create <name>` | Create one from `--image`, `--git`, `--compose` or `--local`, and deploy it unless it waits for a folder |
+| `qsr apps delete <app>` | Delete it, with its containers, files and data (asks first; `--yes` not to) |
+| `qsr deploy <app> [folder]` | Deploy and wait for the outcome; one created with `--local` is sent the folder first (`--detach` to return at once) |
 | `qsr restart <app>`, `start`, `stop` | Lifecycle |
 | `qsr logs <app>` | Recent logs (`-n` for the line count, `-f` to follow, `-t` for timestamps) |
 | `qsr env <app>` | Show the environment (admin personal token) |
@@ -129,6 +131,27 @@ The file is written readable by its owner only. Treat it like an SSH key.
 
 An application is named by its id, its subdomain or its name; a name two
 applications share is refused, with both listed.
+
+## Deploying a folder
+
+An application created with `--local` runs whatever folder you send it, built
+like a repository: with its compose file when it has one at its root,
+otherwise with its Dockerfile.
+
+```sh
+qsr apps create "My site" --local --port 8080   # served at my-site.<your domain>
+qsr deploy my-site ./site                        # pack, upload, build, wait
+qsr deploy my-site                               # the current folder
+```
+
+`.git` is never sent, nor anything the folder's `.gitignore` and
+`.dockerignore` files exclude (both read the way git reads a `.gitignore`, at
+every level). A folder larger than the server accepts is refused before it is
+sent; an admin sets that limit under **Settings > Folder uploads** (200 MB
+compressed by default).
+
+Creating and deleting applications and deploying folders need Quasar v0.6.0
+or later.
 
 Every command accepts `--json` for scripts. Colours are dropped when the
 output is not a terminal, and when `NO_COLOR` is set.

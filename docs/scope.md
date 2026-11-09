@@ -184,5 +184,27 @@ with tests. CLI changes go here.
 13. Release v0.1.0, when the maintainer decides.
 
 Steps 1 to 12 were done on 2026-11-09; the server side shipped in Quasar
-v0.5.2. The archives, the install scripts and `qsr update` download from this
-repository's GitHub releases, so they need the repository to be public.
+v0.5.2, and v0.1.0 was released the same day.
+
+## Second release (v0.2.0): deploying a folder
+
+Decided on 2026-11-09, with the server side planned as Quasar v0.6.0.
+
+- A new application type, **local**: its source only ever comes from
+  `qsr deploy <app> <folder>`, and is built like a git checkout (the compose
+  file when there is one at the root, otherwise the Dockerfile). A git
+  application is never overwritten by an upload.
+- `qsr apps create` makes applications of every type (image, git, compose,
+  local) through a new `POST /apps`; `qsr apps delete` deletes one through
+  `DELETE /apps/{id}`, after the name is typed back (or `--yes`).
+- The folder leaves out `.git`, and what its `.gitignore` and `.dockerignore`
+  exclude. It is sent as a gzipped tar to `PUT /apps/{id}/source`, which
+  unpacks it beside the current source, refuses anything that would land
+  outside it, swaps it in and deploys.
+- The upload limit is a server setting, 200 MB compressed by default, which
+  `GET /me` reports as `upload_max_bytes` so that `qsr` refuses a larger folder
+  before sending it.
+- The server keeps the built images (for rollback) and only the latest
+  uploaded source, which a redeploy from the dashboard rebuilds.
+
+Done on 2026-11-09, waiting for the two releases.
