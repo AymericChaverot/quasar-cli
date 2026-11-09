@@ -13,7 +13,12 @@ use crate::apps::{self, App};
 use crate::{output, pack, session};
 
 /// How often a running deploy is asked about.
-const POLL: Duration = Duration::from_secs(2);
+const POLL: Duration = Duration::from_secs(1);
+/// How often the progress line is redrawn, which is how fast its dots move.
+const FRAME: Duration = Duration::from_millis(250);
+/// The dots after the name, one frame each, padded so that the time after
+/// them stays put.
+const DOTS: [&str; 4] = [".  ", ".. ", "...", "   "];
 
 #[derive(Deserialize)]
 struct Accepted {}
@@ -108,11 +113,26 @@ fn upload(client: &Client, a: &App, folder: &Path, json: bool) -> Result<()> {
 pub fn wait(client: &Client, a: &App, verb: &str, done: &str, json: bool) -> Result<()> {
     let started = Instant::now();
     let progress = Progress::new(json);
+    let mut frame = 0;
+    let mut next_poll = started + POLL;
     let last = loop {
-        thread::sleep(POLL);
+        // The line is redrawn several times between two questions to the
+        // server, so the dots move; without a terminal there is no line, and
+        // the wait is one sleep per question.
+        if progress.on {
+            progress.tick(verb, &a.name, started.elapsed(), frame);
+            frame += 1;
+            thread::sleep(FRAME);
+            if Instant::now() < next_poll {
+                continue;
+            }
+        } else {
+            thread::sleep(POLL);
+        }
+        next_poll = Instant::now() + POLL;
         let now: App = client.get(&format!("/apps/{}", a.id))?;
         match status(&now) {
-            Status::Running => progress.tick(verb, &a.name, started.elapsed()),
+            Status::Running => {}
             Status::Unknown => {
                 progress.clear();
                 bail!(
@@ -207,10 +227,11 @@ impl Progress {
         }
     }
 
-    fn tick(&self, verb: &str, name: &str, elapsed: Duration) {
+    fn tick(&self, verb: &str, name: &str, elapsed: Duration, frame: usize) {
         if self.on {
             let mut err = io::stderr().lock();
-            let _ = write!(err, "\r\x1b[2K{verb} {name}... {}", human(elapsed));
+            let dots = DOTS[frame % DOTS.len()];
+            let _ = write!(err, "\r\x1b[2K{verb} {name}{dots} {}", human(elapsed));
             let _ = err.flush();
         }
     }
