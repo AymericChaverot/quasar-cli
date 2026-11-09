@@ -7,6 +7,7 @@ use std::time::{Duration, Instant};
 use anyhow::{Result, bail};
 use serde::Deserialize;
 
+use crate::api::Client;
 use crate::apps::{self, App};
 use crate::{output, session};
 
@@ -33,13 +34,20 @@ pub fn deploy(app: &str, detach: bool, context: Option<&str>, json: bool) -> Res
         return Ok(());
     }
 
+    wait(&s.client, &a, "Deploying", "Deployed", json)
+}
+
+/// Waits for the deploy just started on an application to end, reporting it
+/// as `verb` while it runs and `done` once it worked, and fails when it
+/// failed. With --json, prints the application as it ends up.
+pub fn wait(client: &Client, a: &App, verb: &str, done: &str, json: bool) -> Result<()> {
     let started = Instant::now();
     let progress = Progress::new(json);
     let last = loop {
         thread::sleep(POLL);
-        let now: App = s.client.get(&format!("/apps/{}", a.id))?;
+        let now: App = client.get(&format!("/apps/{}", a.id))?;
         match status(&now) {
-            Status::Running => progress.tick(&a.name, started.elapsed()),
+            Status::Running => progress.tick(verb, &a.name, started.elapsed()),
             Status::Unknown => {
                 progress.clear();
                 bail!(
@@ -61,7 +69,7 @@ pub fn deploy(app: &str, detach: bool, context: Option<&str>, json: bool) -> Res
         Some(err) => bail!("{} failed to deploy after {took}: {err}", a.name),
         None => {
             if !json {
-                println!("Deployed {} in {took}.", a.name);
+                println!("{done} {} in {took}.", a.name);
             }
             Ok(())
         }
@@ -134,10 +142,10 @@ impl Progress {
         }
     }
 
-    fn tick(&self, name: &str, elapsed: Duration) {
+    fn tick(&self, verb: &str, name: &str, elapsed: Duration) {
         if self.on {
             let mut err = io::stderr().lock();
-            let _ = write!(err, "\r\x1b[2KDeploying {name}... {}", human(elapsed));
+            let _ = write!(err, "\r\x1b[2K{verb} {name}... {}", human(elapsed));
             let _ = err.flush();
         }
     }

@@ -129,6 +129,18 @@ impl Client {
             .with_context(|| format!("unexpected answer from {}", self.base))
     }
 
+    pub fn post_json<B: Serialize, T: DeserializeOwned>(&self, path: &str, body: &B) -> Result<T> {
+        let resp = self.send(self.request(reqwest::Method::POST, path).json(body))?;
+        resp.json()
+            .with_context(|| format!("unexpected answer from {}", self.base))
+    }
+
+    pub fn delete<T: DeserializeOwned>(&self, path: &str) -> Result<T> {
+        let resp = self.send(self.request(reqwest::Method::DELETE, path))?;
+        resp.json()
+            .with_context(|| format!("unexpected answer from {}", self.base))
+    }
+
     pub fn put<B: Serialize, T: DeserializeOwned>(&self, path: &str, body: &B) -> Result<T> {
         let resp = self.send(self.request(reqwest::Method::PUT, path).json(body))?;
         resp.json()
